@@ -1,2 +1,2 @@
-This is k8s simulator.
-To get k8s simulator configuration file curl IP of the POD.
+This is Kubernetes simulator.
+To get Kubernetes simulator configuration file curl IP of the POD.
