@@ -1,0 +1,109 @@
+---
+# Source: config-app/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: config-app
+  labels:
+    helm.sh/chart: config-app-0.1.0
+    app.kubernetes.io/name: config-app
+    app.kubernetes.io/instance: config-app
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: config-app/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-app-svc
+  labels:
+    helm.sh/chart: config-app-0.1.0
+    app.kubernetes.io/name: config-app-svc
+    app.kubernetes.io/instance: config-app
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: config-app
+    app.kubernetes.io/instance: config-app
+---
+# Source: config-app/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-app
+  labels:
+    helm.sh/chart: config-app-0.1.0
+    app.kubernetes.io/name: config-app
+    app.kubernetes.io/instance: config-app
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: config-app
+      app.kubernetes.io/instance: config-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: config-app
+        app.kubernetes.io/instance: config-app
+    spec:
+      serviceAccountName: config-app
+      securityContext:
+        {}
+      volumes:
+      - name: kubeconfig
+        configMap:
+          name: index
+          items:
+          - key: index.html
+            path: index.html
+      containers:
+        - name: config-app
+          securityContext:
+            {}
+          image: docker.io/nginx
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: kubeconfig
+            mountPath: "/usr/share/nginx/html"
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: config-app-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: config-app-svc
+            port:
+              number: 8082
